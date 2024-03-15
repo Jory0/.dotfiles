@@ -1,6 +1,30 @@
 #!/bin/bash
 
-ASDF_INSTALL_DIR="~/.asdf"
+ASDF_INSTALL_DIR="$HOME/.asdf"
+
+asdf_command() {
+ zsh -c ". $ASDF_INSTALL_DIR/asdf.sh && $1"
+}
+
+symlink_config_dir() {
+  config_dir=$PWD/config
+  for dir in "$config_dir"/*
+  do
+    echo "test"
+    for config in "$dir"/.[^.]*
+    do
+      echo $config
+      file_name=$(basename $config)
+      if [ -f "$HOME/$file_name" ]; then
+        echo "'$file_name' already exists. Deleting"
+        sudo rm "$HOME/$file_name"
+      fi
+  
+      echo "linking $config to home directory"
+      ln -s $config "$HOME/$file_name"
+    done
+  done
+}
 
 update_shell() {
   local shell_path;
@@ -14,37 +38,21 @@ update_shell() {
   sudo chsh -s "$shell_path" "$USER"
 }
 
-append_to_zshrc() {
-  local text="$1" zshrc
-  local skip_new_line="${2:-0}"
-
-  if [ -w "$HOME/.zshrc" ]; then
-    zshrc="$HOME/.zshrc"
-  fi
-
-  if ! grep -Fqs "$text" "$zshrc"; then
-    if [ "$skip_new_line" -eq 1 ]; then
-      printf "%s\\n" "$text" >> "$zshrc"
-    else
-      printf "\\n%s\\n" "$text" >> "$zshrc"
-    fi
-  fi
-}
-
-asdf_command() {
- zsh -c ". $ASDF_INSTALL_DIR/asdf.sh && $1"
-}
-
-# TODO: setup symlinking properly
 # --- Dotfiles & bin folder ---
-#ln -s $PWD/bin $HOME/.bin
-#ln -s $PWD/config/zsh/.zshrc $HOME/.zshrc
+symlink_config_dir
 
+
+# TODO: iterate over list of packages to install; move to function
 sudo apt-get update -qq
 
 sudo apt-get -qq --yes install curl zsh git neovim fzf ripgrep
 
-git clone "https://github.com/asdf-vm/asdf.git" ~/.asdf --branch v0.14.0
+if [ ! -d $ASDF_INSTALL_DIR ]
+  then
+    git clone "https://github.com/asdf-vm/asdf.git" $ASDF_INSTALL_DIR --branch v0.14.0
+  else
+    echo "$ASDF_INSTALL_DIR already exists"
+fi
 
 asdf_command 'asdf update'
 asdf_command 'asdf plugin add nodejs'
@@ -56,13 +64,18 @@ asdf_command 'asdf install lua latest && asdf global lua latest'
 
 # --- Non-dev specific stuff ---
 # 1Pass
-/usr/bin/curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
-echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main' | sudo tee /etc/apt/sources.list.d/1password.list
-sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
-curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol
-sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
-curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
-sudo apt-get -qq --yes install 1password
+if [ ! -f /usr/share/keyrings/1password-archive-keyring.gpg ]
+  then
+    /usr/bin/curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
+    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main' | sudo tee /etc/apt/sources.list.d/1password.list
+    sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
+    curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol
+    sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
+    curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+    sudo apt-get -qq --yes install 1password
+  else
+    echo "1Password already installed"
+fi
 
 case "$SHELL" in
   */zsh)

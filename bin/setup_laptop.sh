@@ -10,10 +10,8 @@ symlink_config_dir() {
   config_dir=$PWD/config
   for dir in "$config_dir"/*
   do
-    echo "test"
     for config in "$dir"/.[^.]*
     do
-      echo $config
       file_name=$(basename $config)
       if [ -f "$HOME/$file_name" ]; then
         echo "'$file_name' already exists. Deleting"

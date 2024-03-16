@@ -7,9 +7,18 @@ asdf_command() {
 }
 
 symlink_config_dir() {
+  if [ ! -d "$HOME/.config" ]; then
+    mkdir "$HOME/.config"
+  fi
+
   config_dir=$PWD/config
   for dir in "$config_dir"/*
   do
+    if [ "$dir" != "zsh" ]; then
+      ln -s "$dir" "$HOME/.config/$(basename $dir)"
+      break
+    fi
+
     for config in "$dir"/.[^.]*
     do
       file_name=$(basename $config)
@@ -38,7 +47,6 @@ update_shell() {
 
 # --- Dotfiles & bin folder ---
 symlink_config_dir
-
 
 # TODO: iterate over list of packages to install; move to function
 sudo apt-get update -qq

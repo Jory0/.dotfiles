@@ -8,6 +8,7 @@ asdf_command() {
 
 symlink_config_dir() {
   if [ ! -d "$HOME/.config" ]; then
+    echo "creating .config directory"
     mkdir "$HOME/.config"
   fi
 
@@ -15,6 +16,7 @@ symlink_config_dir() {
   for dir in "$config_dir"/*
   do
     if [ "$dir" != "zsh" ]; then
+      echo "establishing symlink for $dir"
       ln -s "$dir" "$HOME/.config/$(basename $dir)"
       break
     fi
@@ -27,7 +29,7 @@ symlink_config_dir() {
         sudo rm "$HOME/$file_name"
       fi
   
-      echo "linking $config to home directory"
+      echo "symlinking $config to home directory"
       ln -s $config "$HOME/$file_name"
     done
   done
